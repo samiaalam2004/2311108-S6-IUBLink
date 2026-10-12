@@ -191,5 +191,3 @@ The system will satisfy the main requirements when:
 6. Administrators can verify alumni and manage users.
 7. Unauthorized API requests are rejected.
 8. Frontend and backend operations work correctly together.
-
-
