@@ -191,3 +191,184 @@ The system will satisfy the main requirements when:
 6. Administrators can verify alumni and manage users.
 7. Unauthorized API requests are rejected.
 8. Frontend and backend operations work correctly together.
+
+## 12. Use Cases
+
+This section describes the main interactions between IUBLink users and the system.
+
+### UC-01: User Registration
+
+**Actor:** Student, Alumni, Faculty
+
+**Precondition:** The user does not already have an account with the same email address.
+
+**Main Flow:**
+1. The user opens the registration page.
+2. The user enters the required registration information.
+3. The system validates the submitted information.
+4. The system checks whether the email address is already registered.
+5. The system creates the account if the information is valid.
+6. The system displays a registration success message.
+
+**Alternative Flow:**
+- If required information is missing or invalid, the system displays an error.
+- If the email address is already registered, the system rejects the registration.
+
+### UC-02: User Login
+
+**Actor:** Student, Alumni, Faculty, Administrator
+
+**Precondition:** The user has a registered account.
+
+**Main Flow:**
+1. The user opens the login page.
+2. The user enters their email and password.
+3. The system validates the credentials.
+4. The system generates an authentication token after successful authentication.
+5. The system redirects the user to the appropriate dashboard.
+
+**Alternative Flow:**
+- If the credentials are incorrect, the system displays an error message.
+- If the account is unauthorized or inactive, the system denies access.
+
+### UC-03: Manage Profile
+
+**Actor:** Authenticated User
+
+**Precondition:** The user is logged in.
+
+**Main Flow:**
+1. The user opens their profile.
+2. The system displays the user's profile information.
+3. The user selects the edit option.
+4. The user updates the required information.
+5. The system validates and saves the changes.
+6. The system displays the updated profile.
+
+**Alternative Flow:**
+- If the submitted information is invalid, the system displays validation errors.
+- The system prevents users from modifying another user's private profile information without authorization.
+
+### UC-04: Search Alumni
+
+**Actor:** Student, Alumni, Faculty
+
+**Precondition:** The user is logged in and has permission to access the alumni directory.
+
+**Main Flow:**
+1. The user opens the alumni directory.
+2. The user enters search keywords or selects filters.
+3. The system searches the available alumni profiles.
+4. The system displays matching results.
+5. The user selects an alumni profile to view its permitted information.
+
+**Alternative Flow:**
+- If no matching alumni are found, the system displays a no-results message.
+
+### UC-05: Send Connection Request
+
+**Actor:** Student, Alumni
+
+**Precondition:** The user is logged in and has permission to create connection requests.
+
+**Main Flow:**
+1. The user opens another user's profile.
+2. The user selects the connection request option.
+3. The system creates a pending connection request.
+4. The recipient receives or can view the incoming request.
+5. The recipient accepts or rejects the request.
+6. The system updates the request status.
+
+**Alternative Flow:**
+- If a request already exists, the system prevents duplicate requests.
+- If the recipient rejects the request, the connection is not established.
+
+### UC-06: Request Mentorship
+
+**Actor:** Student, Alumni
+
+**Precondition:** The student is logged in and the selected alumnus is available for mentorship.
+
+**Main Flow:**
+1. The student opens an alumni profile.
+2. The student selects the mentorship request option.
+3. The student submits the request.
+4. The system records the request as pending.
+5. The alumnus reviews the request.
+6. The alumnus accepts or rejects the request.
+7. The system updates the request status.
+
+**Alternative Flow:**
+- If the request is invalid or already exists, the system displays an appropriate message.
+- If the alumnus rejects the request, the system records the rejected status.
+
+### UC-07: Manage Career Opportunities
+
+**Actor:** Verified Alumni, Student
+
+**Precondition:** The alumnus is verified and logged in.
+
+**Main Flow:**
+1. The alumnus opens the opportunity management page.
+2. The alumnus creates a job or internship post.
+3. The alumnus enters the opportunity details.
+4. The system validates and saves the post.
+5. Authorized users browse the published opportunities.
+6. The alumnus can update or manage their own posts.
+
+**Alternative Flow:**
+- If the submitted information is invalid, the system displays an error.
+- Unverified alumni cannot create opportunity posts.
+
+### UC-08: Manage Events and Register
+
+**Actor:** Faculty, Administrator, Student, Alumni
+
+**Precondition:** The user is logged in.
+
+**Main Flow:**
+1. An authorized faculty member or administrator opens the event management page.
+2. The user creates or updates an event.
+3. The system validates and saves the event information.
+4. Students and alumni browse available events.
+5. A student or alumnus selects an event and registers.
+6. The system records the event registration.
+
+**Alternative Flow:**
+- Unauthorized users cannot create or manage events.
+- If registration is unavailable or the event is full, the system displays an appropriate message.
+
+### UC-09: Verify Alumni
+
+**Actor:** Administrator
+
+**Precondition:** The administrator is logged in and has alumni verification permission.
+
+**Main Flow:**
+1. The administrator opens the alumni verification page.
+2. The system displays pending verification requests.
+3. The administrator reviews the submitted information.
+4. The administrator approves or rejects a request.
+5. The system updates the alumni verification status.
+6. The system records the decision.
+
+**Alternative Flow:**
+- If the submitted information is insufficient, the administrator may reject the request or request further information if supported.
+
+### UC-10: Manage Users and Moderate Content
+
+**Actor:** Administrator
+
+**Precondition:** The administrator is logged in and has the required administrative permissions.
+
+**Main Flow:**
+1. The administrator opens the administration panel.
+2. The administrator views user accounts or submitted content.
+3. The administrator selects an account or content item.
+4. The administrator performs an authorized action, such as updating account status or moderating content.
+5. The system validates the action and saves the changes.
+6. The system displays a confirmation message.
+
+**Alternative Flow:**
+- If the administrator does not have the required permission, the system denies the action.
+- If the selected item does not exist, the system displays an appropriate error message.
