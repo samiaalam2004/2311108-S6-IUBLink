@@ -13,6 +13,14 @@ import "./App.css"
 const API = "http://127.0.0.1:8000"
 
 type Role = "student" | "alumni" | "faculty" | "admin"
+
+type User = {
+  id: number
+  full_name: string
+  email: string
+  role: Role
+}
+
 type PostType = "job_seeking" | "job" | "internship"
 
 type Post = {
@@ -44,7 +52,14 @@ async function apiData<T>(response: Response): Promise<T> {
 }
 
 function CareerDashboard() {
+  const [user, setUser] = useState<User | null>(null)
+
+  const [token] = useState(
+    localStorage.getItem("access_token") || ""
+  )
+
   const [role, setRole] = useState<Role>("student")
+
   const [posts, setPosts] = useState<Post[]>([])
   const [myPosts, setMyPosts] = useState<Post[]>([])
   const [adminPosts, setAdminPosts] = useState<Post[]>([])
@@ -59,21 +74,42 @@ function CareerDashboard() {
   const [message, setMessage] = useState("")
   const [error, setError] = useState("")
 
-  const ownerId =
-    role === "student"
-      ? "student-001"
-      : role === "alumni"
-        ? "alumni-001"
-        : ""
+  // Load logged-in user from backend
+  useEffect(() => {
+    async function loadUser() {
+      if (!token) {
+        setError("Please log in first.")
+        return
+      }
 
-  const ownerName =
-    role === "student"
-      ? "Demo Student"
-      : role === "alumni"
-        ? "Demo Alumni"
-        : ""
+      try {
+        const response = await fetch(`${API}/api/auth/me`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
 
+        const currentUser = await apiData<User>(response)
+
+        setUser(currentUser)
+        setRole(currentUser.role)
+        setPostType(
+          currentUser.role === "student" ? "job_seeking" : "job"
+        )
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Could not load user"
+        )
+      }
+    }
+
+    void loadUser()
+  }, [token])
+
+  // Load posts from backend
   async function refreshData() {
+    if (!token || !user) return
+
     try {
       setError("")
 
@@ -82,15 +118,22 @@ function CareerDashboard() {
 
       if (role === "admin") {
         const response = await fetch(
-          `${API}/api/admin/posts?status=pending`
+          `${API}/api/admin/posts?status=pending`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
         )
 
         setAdminPosts(await apiData<Post[]>(response))
         setMyPosts([])
       } else if (role === "student" || role === "alumni") {
-        const response = await fetch(
-          `${API}/api/my-posts?owner_id=${encodeURIComponent(ownerId)}`
-        )
+        const response = await fetch(`${API}/api/my-posts`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
 
         setMyPosts(await apiData<Post[]>(response))
         setAdminPosts([])
@@ -99,25 +142,17 @@ function CareerDashboard() {
         setAdminPosts([])
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not load posts")
+      setError(
+        err instanceof Error ? err.message : "Could not load posts"
+      )
     }
   }
 
   useEffect(() => {
-    void refreshData()
-  }, [role])
-
-  function handleRoleChange(newRole: Role) {
-    setRole(newRole)
-    setTitle("")
-    setDescription("")
-    setCompany("")
-    setEditingId(null)
-    setPostType(newRole === "student" ? "job_seeking" : "job")
-    setDetail(null)
-    setMessage("")
-    setError("")
-  }
+    if (user) {
+      void refreshData()
+    }
+  }, [user, role])
 
   function resetForm() {
     setTitle("")
@@ -127,10 +162,17 @@ function CareerDashboard() {
     setPostType(role === "student" ? "job_seeking" : "job")
   }
 
+  // Create or edit a career post
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
+
     setMessage("")
     setError("")
+
+    if (!token || !user) {
+      setError("Please log in first.")
+      return
+    }
 
     if (role !== "student" && role !== "alumni") {
       setError("You do not have permission to create career posts.")
@@ -148,23 +190,26 @@ function CareerDashboard() {
 
       if (editingId !== null) {
         response = await fetch(
-          `${API}/api/posts/${editingId}?owner_id=${encodeURIComponent(ownerId)}`,
+          `${API}/api/posts/${editingId}`,
           {
             method: "PATCH",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
             body: JSON.stringify(commonData),
           }
         )
       } else {
         response = await fetch(`${API}/api/posts`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
           body: JSON.stringify({
             ...commonData,
             post_type: postType,
-            owner_id: ownerId,
-            owner_name: ownerName,
-            owner_role: role,
           }),
         })
       }
@@ -180,7 +225,9 @@ function CareerDashboard() {
       resetForm()
       await refreshData()
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong")
+      setError(
+        err instanceof Error ? err.message : "Something went wrong"
+      )
     }
   }
 
@@ -191,26 +238,36 @@ function CareerDashboard() {
     setCompany(post.company || "")
     setMessage("")
     setError("")
+
     window.scrollTo({ top: 0, behavior: "smooth" })
   }
 
+  // Delete a post
   async function deletePost(id: number) {
-    if (!window.confirm("Are you sure you want to delete this post?")) return
+    if (!window.confirm("Are you sure you want to delete this post?")) {
+      return
+    }
 
     try {
-      const response = await fetch(
-        `${API}/api/posts/${id}?owner_id=${encodeURIComponent(ownerId)}`,
-        { method: "DELETE" }
-      )
+      const response = await fetch(`${API}/api/posts/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
 
       await apiData<{ message: string }>(response)
+
       setMessage("Post deleted successfully!")
       await refreshData()
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Delete failed")
+      setError(
+        err instanceof Error ? err.message : "Delete failed"
+      )
     }
   }
 
+  // Admin approves or rejects a post
   async function reviewPost(
     id: number,
     status: "approved" | "rejected"
@@ -220,7 +277,10 @@ function CareerDashboard() {
         `${API}/api/admin/posts/${id}/review`,
         {
           method: "PATCH",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
           body: JSON.stringify({
             status,
             review_note:
@@ -232,19 +292,25 @@ function CareerDashboard() {
       )
 
       await apiData<Post>(response)
+
       setMessage(`Post ${status}!`)
       await refreshData()
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Review failed")
+      setError(
+        err instanceof Error ? err.message : "Review failed"
+      )
     }
   }
 
+  // Show details of an approved post
   async function showDetails(id: number) {
     try {
       const response = await fetch(`${API}/api/posts/${id}`)
       setDetail(await apiData<Post>(response))
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not load details")
+      setError(
+        err instanceof Error ? err.message : "Could not load details"
+      )
     }
   }
 
@@ -254,17 +320,24 @@ function CareerDashboard() {
     return "Job Opportunity"
   }
 
+  if (!user && !error) {
+    return <div className="auth-page">Loading your dashboard...</div>
+  }
+
   return (
     <div className="dashboard-layout">
       <Sidebar role={role} />
 
       <div className="dashboard-main">
-        <Navbar role={role} onRoleChange={handleRoleChange} />
+        <Navbar user={user!} />
 
         <main className="dashboard-content">
           <div className="dashboard-toolbar">
             <div>
               <h1>Welcome to IUBLink!</h1>
+              <p>
+                Welcome back, {user?.full_name || "User"}!
+              </p>
               <p>Connect. Explore. Grow.</p>
             </div>
 
@@ -276,13 +349,12 @@ function CareerDashboard() {
               ↻ Refresh
             </button>
           </div>
-          
 
           <DashboardStats
-           role={role}
-           posts={posts}
-           myPosts={myPosts}
-           adminPosts={adminPosts}
+            role={role}
+            posts={posts}
+            myPosts={myPosts}
+            adminPosts={adminPosts}
           />
 
           {message && <p className="success">{message}</p>}
@@ -291,7 +363,9 @@ function CareerDashboard() {
           {(role === "student" || role === "alumni") && (
             <section className="panel">
               <h2>
-                {editingId !== null ? "Edit Your Post" : "Create a Career Post"}
+                {editingId !== null
+                  ? "Edit Your Post"
+                  : "Create a Career Post"}
               </h2>
 
               <form onSubmit={handleSubmit}>
@@ -306,11 +380,17 @@ function CareerDashboard() {
                       }
                     >
                       {role === "student" ? (
-                        <option value="job_seeking">Job Seeking</option>
+                        <option value="job_seeking">
+                          Job Seeking
+                        </option>
                       ) : (
                         <>
-                          <option value="job">Job Opportunity</option>
-                          <option value="internship">Internship</option>
+                          <option value="job">
+                            Job Opportunity
+                          </option>
+                          <option value="internship">
+                            Internship
+                          </option>
                         </>
                       )}
                     </select>
@@ -355,7 +435,9 @@ function CareerDashboard() {
 
                 <div className="form-actions">
                   <button type="submit">
-                    {editingId !== null ? "Save Changes" : "Submit Post"}
+                    {editingId !== null
+                      ? "Save Changes"
+                      : "Submit Post"}
                   </button>
 
                   {editingId !== null && (
@@ -394,14 +476,18 @@ function CareerDashboard() {
 
                   <div className="form-actions">
                     <button
-                      onClick={() => void reviewPost(post.id, "approved")}
+                      onClick={() =>
+                        void reviewPost(post.id, "approved")
+                      }
                     >
                       Approve
                     </button>
 
                     <button
                       className="delete-btn"
-                      onClick={() => void reviewPost(post.id, "rejected")}
+                      onClick={() =>
+                        void reviewPost(post.id, "rejected")
+                      }
                     >
                       Reject
                     </button>
@@ -414,8 +500,8 @@ function CareerDashboard() {
               <h2>Faculty Dashboard</h2>
               <p>Welcome to IUBLink, Faculty!</p>
               <p>
-                You can explore approved career posts. More faculty features
-                will be added in future development.
+                You can explore approved career posts. More faculty
+                features will be added in future development.
               </p>
             </section>
           ) : (

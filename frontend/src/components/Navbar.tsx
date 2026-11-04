@@ -1,17 +1,32 @@
 
+import { useNavigate } from "react-router-dom"
+
 type Role = "student" | "alumni" | "faculty" | "admin"
 
-interface NavbarProps {
+interface User {
+  full_name: string
+  email: string
   role: Role
-  onRoleChange: (role: Role) => void
 }
 
-function Navbar({ role, onRoleChange }: NavbarProps) {
+interface NavbarProps {
+  user: User
+}
+
+function Navbar({ user }: NavbarProps) {
+  const navigate = useNavigate()
+
   const roleLabels: Record<Role, string> = {
     student: "Student",
     alumni: "Alumni",
     faculty: "Faculty",
     admin: "Admin",
+  }
+
+  function handleLogout() {
+    localStorage.removeItem("access_token")
+    localStorage.removeItem("user")
+    navigate("/login")
   }
 
   return (
@@ -24,19 +39,6 @@ function Navbar({ role, onRoleChange }: NavbarProps) {
       </div>
 
       <div className="navbar-actions">
-        <select
-          className="navbar-role-select"
-          value={role}
-          onChange={(event) => onRoleChange(event.target.value as Role)}
-          aria-label="Select demo role"
-        >
-          {Object.entries(roleLabels).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </select>
-
         <button
           type="button"
           className="notification-btn"
@@ -48,12 +50,23 @@ function Navbar({ role, onRoleChange }: NavbarProps) {
         </button>
 
         <div className="navbar-profile">
-          <div className="profile-avatar">U</div>
+          <div className="profile-avatar">
+            {user.full_name.charAt(0).toUpperCase()}
+          </div>
+
           <div className="profile-info">
-            <strong>IUBLink User</strong>
-            <span>{roleLabels[role]}</span>
+            <strong>{user.full_name}</strong>
+            <span>{roleLabels[user.role]}</span>
           </div>
         </div>
+
+        <button
+          type="button"
+          className="logout-btn"
+          onClick={handleLogout}
+        >
+          Logout
+        </button>
       </div>
     </header>
   )
