@@ -22,7 +22,7 @@ function Register() {
 
     try {
       const response = await fetch(
-        "http://127.0.0.1:8000/api/auth/register",
+        "https://2311108-s6-iub-link.vercel.app/api/auth/register",
         {
           method: "POST",
           headers: {
