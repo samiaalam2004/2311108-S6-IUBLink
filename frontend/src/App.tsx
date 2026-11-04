@@ -10,7 +10,7 @@ import Sidebar from "./components/Sidebar"
 import DashboardStats from "./components/DashboardStats"
 import "./App.css"
 
-const API = "http://127.0.0.1:8000"
+const API = "https://2311108-s6-iub-link.vercel.app"
 
 type Role = "student" | "alumni" | "faculty" | "admin"
 
