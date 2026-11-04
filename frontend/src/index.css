@@ -1,29 +1,29 @@
+
 :root {
-  font-family: system-ui, sans-serif;
-  color-scheme: light dark;
+  font-family: Arial, sans-serif;
+  color: #1e293b;
+  background: #f4f6fb;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
 }
 
-main {
-  max-width: 480px;
-  margin: 4rem auto;
-  padding: 0 1rem;
+* {
+  box-sizing: border-box;
 }
 
-form {
-  display: flex;
-  gap: 0.5rem;
+html {
+  min-width: 320px;
 }
 
-input {
-  flex: 1;
-  padding: 0.5rem;
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
 }
 
-button {
-  padding: 0.5rem 1rem;
-  cursor: pointer;
-}
-
-.error {
-  color: crimson;
+button,
+input,
+textarea,
+select {
+  font: inherit;
 }

@@ -1,10 +1,18 @@
 
 import { useEffect, useState, type FormEvent } from "react"
+import { Routes, Route } from "react-router-dom"
+
+import Home from "./pages/Home"
+import Login from "./pages/Login"
+import Register from "./pages/Register"
+import Navbar from "./components/Navbar"
+import Sidebar from "./components/Sidebar"
+import DashboardStats from "./components/DashboardStats"
 import "./App.css"
 
 const API = "http://127.0.0.1:8000"
 
-type Role = "student" | "alumni" | "admin"
+type Role = "student" | "alumni" | "faculty" | "admin"
 type PostType = "job_seeking" | "job" | "internship"
 
 type Post = {
@@ -23,6 +31,7 @@ type Post = {
 
 async function apiData<T>(response: Response): Promise<T> {
   const data = await response.json()
+
   if (!response.ok) {
     throw new Error(
       typeof data.detail === "string"
@@ -30,10 +39,11 @@ async function apiData<T>(response: Response): Promise<T> {
         : JSON.stringify(data.detail)
     )
   }
+
   return data as T
 }
 
-export default function App() {
+function CareerDashboard() {
   const [role, setRole] = useState<Role>("student")
   const [posts, setPosts] = useState<Post[]>([])
   const [myPosts, setMyPosts] = useState<Post[]>([])
@@ -49,8 +59,19 @@ export default function App() {
   const [message, setMessage] = useState("")
   const [error, setError] = useState("")
 
-  const ownerId = role === "student" ? "student-001" : "alumni-001"
-  const ownerName = role === "student" ? "Demo Student" : "Demo Alumni"
+  const ownerId =
+    role === "student"
+      ? "student-001"
+      : role === "alumni"
+        ? "alumni-001"
+        : ""
+
+  const ownerName =
+    role === "student"
+      ? "Demo Student"
+      : role === "alumni"
+        ? "Demo Alumni"
+        : ""
 
   async function refreshData() {
     try {
@@ -60,14 +81,21 @@ export default function App() {
       setPosts(await apiData<Post[]>(publicResponse))
 
       if (role === "admin") {
-        const response = await fetch(`${API}/api/admin/posts?status=pending`)
+        const response = await fetch(
+          `${API}/api/admin/posts?status=pending`
+        )
+
         setAdminPosts(await apiData<Post[]>(response))
         setMyPosts([])
-      } else {
+      } else if (role === "student" || role === "alumni") {
         const response = await fetch(
           `${API}/api/my-posts?owner_id=${encodeURIComponent(ownerId)}`
         )
+
         setMyPosts(await apiData<Post[]>(response))
+        setAdminPosts([])
+      } else {
+        setMyPosts([])
         setAdminPosts([])
       }
     } catch (err) {
@@ -78,6 +106,18 @@ export default function App() {
   useEffect(() => {
     void refreshData()
   }, [role])
+
+  function handleRoleChange(newRole: Role) {
+    setRole(newRole)
+    setTitle("")
+    setDescription("")
+    setCompany("")
+    setEditingId(null)
+    setPostType(newRole === "student" ? "job_seeking" : "job")
+    setDetail(null)
+    setMessage("")
+    setError("")
+  }
 
   function resetForm() {
     setTitle("")
@@ -91,6 +131,11 @@ export default function App() {
     e.preventDefault()
     setMessage("")
     setError("")
+
+    if (role !== "student" && role !== "alumni") {
+      setError("You do not have permission to create career posts.")
+      return
+    }
 
     const commonData = {
       title,
@@ -125,7 +170,13 @@ export default function App() {
       }
 
       await apiData<Post>(response)
-      setMessage(editingId !== null ? "Post updated!" : "Post submitted for approval!")
+
+      setMessage(
+        editingId !== null
+          ? "Post updated!"
+          : "Post submitted for approval!"
+      )
+
       resetForm()
       await refreshData()
     } catch (err) {
@@ -151,6 +202,7 @@ export default function App() {
         `${API}/api/posts/${id}?owner_id=${encodeURIComponent(ownerId)}`,
         { method: "DELETE" }
       )
+
       await apiData<{ message: string }>(response)
       setMessage("Post deleted successfully!")
       await refreshData()
@@ -159,16 +211,26 @@ export default function App() {
     }
   }
 
-  async function reviewPost(id: number, status: "approved" | "rejected") {
+  async function reviewPost(
+    id: number,
+    status: "approved" | "rejected"
+  ) {
     try {
-      const response = await fetch(`${API}/api/admin/posts/${id}/review`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          status,
-          review_note: status === "approved" ? "Approved by admin." : "Rejected by admin.",
-        }),
-      })
+      const response = await fetch(
+        `${API}/api/admin/posts/${id}/review`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            status,
+            review_note:
+              status === "approved"
+                ? "Approved by admin."
+                : "Rejected by admin.",
+          }),
+        }
+      )
+
       await apiData<Post>(response)
       setMessage(`Post ${status}!`)
       await refreshData()
@@ -193,198 +255,271 @@ export default function App() {
   }
 
   return (
-    <main className="app">
-      <header className="header">
-        <div>
-          <h1>IUBLink CareerHub</h1>
-          <p>Connect. Explore. Grow.</p>
-        </div>
-        <span className="brand-tag">IUB CSE</span>
-      </header>
+    <div className="dashboard-layout">
+      <Sidebar role={role} />
 
-      <section className="role-section">
-        <label htmlFor="role">Choose demo role:</label>
-        <select
-          id="role"
-          value={role}
-          onChange={(e) => {
-            setRole(e.target.value as Role)
-            resetForm()
-            setDetail(null)
-            setMessage("")
-          }}
-        >
-          <option value="student">Student</option>
-          <option value="alumni">Alumni</option>
-          <option value="admin">Admin</option>
-        </select>
-        <button className="refresh-btn" onClick={() => void refreshData()}>
-          Refresh
-        </button>
-      </section>
+      <div className="dashboard-main">
+        <Navbar role={role} onRoleChange={handleRoleChange} />
 
-      {message && <p className="success">{message}</p>}
-      {error && <p className="error">{error}</p>}
+        <main className="dashboard-content">
+          <div className="dashboard-toolbar">
+            <div>
+              <h1>Welcome to IUBLink!</h1>
+              <p>Connect. Explore. Grow.</p>
+            </div>
 
-      {role !== "admin" && (
-        <section className="panel">
-          <h2>{editingId !== null ? "Edit Your Post" : "Create a Career Post"}</h2>
-          <form onSubmit={handleSubmit}>
-            {editingId === null && (
-              <label>
-                Post Type
-                <select
-                  value={postType}
-                  onChange={(e) => setPostType(e.target.value as PostType)}
-                >
-                  {role === "student" ? (
-                    <option value="job_seeking">Job Seeking</option>
-                  ) : (
-                    <>
-                      <option value="job">Job Opportunity</option>
-                      <option value="internship">Internship</option>
-                    </>
+            <button
+              type="button"
+              className="refresh-btn"
+              onClick={() => void refreshData()}
+            >
+              ↻ Refresh
+            </button>
+          </div>
+          
+
+          <DashboardStats
+           role={role}
+           posts={posts}
+           myPosts={myPosts}
+           adminPosts={adminPosts}
+          />
+
+          {message && <p className="success">{message}</p>}
+          {error && <p className="error">{error}</p>}
+
+          {(role === "student" || role === "alumni") && (
+            <section className="panel">
+              <h2>
+                {editingId !== null ? "Edit Your Post" : "Create a Career Post"}
+              </h2>
+
+              <form onSubmit={handleSubmit}>
+                {editingId === null && (
+                  <label>
+                    Post Type
+
+                    <select
+                      value={postType}
+                      onChange={(e) =>
+                        setPostType(e.target.value as PostType)
+                      }
+                    >
+                      {role === "student" ? (
+                        <option value="job_seeking">Job Seeking</option>
+                      ) : (
+                        <>
+                          <option value="job">Job Opportunity</option>
+                          <option value="internship">Internship</option>
+                        </>
+                      )}
+                    </select>
+                  </label>
+                )}
+
+                <label>
+                  Title
+
+                  <input
+                    required
+                    minLength={3}
+                    maxLength={150}
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Enter post title"
+                  />
+                </label>
+
+                <label>
+                  Description
+
+                  <textarea
+                    required
+                    minLength={10}
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Write post details..."
+                    rows={4}
+                  />
+                </label>
+
+                <label>
+                  Company (Optional)
+
+                  <input
+                    value={company}
+                    onChange={(e) => setCompany(e.target.value)}
+                    placeholder="Company name"
+                  />
+                </label>
+
+                <div className="form-actions">
+                  <button type="submit">
+                    {editingId !== null ? "Save Changes" : "Submit Post"}
+                  </button>
+
+                  {editingId !== null && (
+                    <button
+                      type="button"
+                      className="cancel-btn"
+                      onClick={resetForm}
+                    >
+                      Cancel
+                    </button>
                   )}
-                </select>
-              </label>
+                </div>
+              </form>
+            </section>
+          )}
+
+          {role === "admin" ? (
+            <section className="panel" id="review">
+              <h2>Admin Review Panel</h2>
+              <p>Review submitted posts before publishing.</p>
+
+              {adminPosts.length === 0 && (
+                <p>No pending posts right now.</p>
+              )}
+
+              {adminPosts.map((post) => (
+                <article className="post-card" key={post.id}>
+                  <span className="status pending">Pending</span>
+
+                  <h3>{post.title}</h3>
+                  <p>{post.description}</p>
+
+                  <small>
+                    {post.owner_name} · {postTypeLabel(post.post_type)}
+                  </small>
+
+                  <div className="form-actions">
+                    <button
+                      onClick={() => void reviewPost(post.id, "approved")}
+                    >
+                      Approve
+                    </button>
+
+                    <button
+                      className="delete-btn"
+                      onClick={() => void reviewPost(post.id, "rejected")}
+                    >
+                      Reject
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </section>
+          ) : role === "faculty" ? (
+            <section className="panel">
+              <h2>Faculty Dashboard</h2>
+              <p>Welcome to IUBLink, Faculty!</p>
+              <p>
+                You can explore approved career posts. More faculty features
+                will be added in future development.
+              </p>
+            </section>
+          ) : (
+            <section className="panel" id="my-posts">
+              <h2>My Posts</h2>
+
+              {myPosts.length === 0 && (
+                <p>You have not created any posts yet.</p>
+              )}
+
+              {myPosts.map((post) => (
+                <article className="post-card" key={post.id}>
+                  <span className={`status ${post.status}`}>
+                    {post.status}
+                  </span>
+
+                  <h3>{post.title}</h3>
+                  <p>{post.description}</p>
+
+                  <small>
+                    {postTypeLabel(post.post_type)} · {post.created_at}
+                  </small>
+
+                  <div className="form-actions">
+                    <button
+                      className="edit-btn"
+                      onClick={() => startEdit(post)}
+                    >
+                      Edit
+                    </button>
+
+                    <button
+                      className="delete-btn"
+                      onClick={() => void deletePost(post.id)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </section>
+          )}
+
+          <section className="panel" id="opportunities">
+            <h2>Approved Career Posts</h2>
+
+            {posts.length === 0 && (
+              <p>No approved posts available.</p>
             )}
 
-            <label>
-              Title
-              <input
-                required
-                minLength={3}
-                maxLength={150}
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Enter post title"
-              />
-            </label>
+            {posts.map((post) => (
+              <article className="post-card" key={post.id}>
+                <span className="status approved">Approved</span>
 
-            <label>
-              Description
-              <textarea
-                required
-                minLength={10}
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Write post details..."
-                rows={4}
-              />
-            </label>
+                <h3>{post.title}</h3>
+                <p>{post.description}</p>
 
-            <label>
-              Company (Optional)
-              <input
-                value={company}
-                onChange={(e) => setCompany(e.target.value)}
-                placeholder="Company name"
-              />
-            </label>
+                <small>
+                  {postTypeLabel(post.post_type)} · By {post.owner_name}
+                </small>
 
-            <div className="form-actions">
-              <button type="submit">
-                {editingId !== null ? "Save Changes" : "Submit Post"}
-              </button>
-              {editingId !== null && (
-                <button type="button" className="cancel-btn" onClick={resetForm}>
-                  Cancel
-                </button>
-              )}
-            </div>
-          </form>
-        </section>
-      )}
-
-      {role === "admin" ? (
-        <section className="panel">
-          <h2>Admin Review Panel</h2>
-          <p>Review submitted posts before publishing.</p>
-          {adminPosts.length === 0 && <p>No pending posts right now.</p>}
-
-          {adminPosts.map((post) => (
-            <article className="post-card" key={post.id}>
-              <span className="status pending">Pending</span>
-              <h3>{post.title}</h3>
-              <p>{post.description}</p>
-              <small>
-                {post.owner_name} · {postTypeLabel(post.post_type)}
-              </small>
-              <div className="form-actions">
-                <button onClick={() => void reviewPost(post.id, "approved")}>
-                  Approve
-                </button>
                 <button
-                  className="delete-btn"
-                  onClick={() => void reviewPost(post.id, "rejected")}
+                  className="details-btn"
+                  onClick={() => void showDetails(post.id)}
                 >
-                  Reject
+                  View Details
                 </button>
-              </div>
-            </article>
-          ))}
-        </section>
-      ) : (
-        <section className="panel">
-          <h2>My Posts</h2>
-          {myPosts.length === 0 && <p>You have not created any posts yet.</p>}
+              </article>
+            ))}
+          </section>
 
-          {myPosts.map((post) => (
-            <article className="post-card" key={post.id}>
-              <span className={`status ${post.status}`}>{post.status}</span>
-              <h3>{post.title}</h3>
-              <p>{post.description}</p>
-              <small>
-                {postTypeLabel(post.post_type)} · {post.created_at}
-              </small>
-              <div className="form-actions">
-                <button className="edit-btn" onClick={() => startEdit(post)}>
-                  Edit
-                </button>
-                <button className="delete-btn" onClick={() => void deletePost(post.id)}>
-                  Delete
-                </button>
-              </div>
-            </article>
-          ))}
-        </section>
-      )}
+          {detail && (
+            <section className="panel detail-panel">
+              <h2>Post Details</h2>
+              <h3>{detail.title}</h3>
+              <p>{detail.description}</p>
+              <p>Company: {detail.company || "Not specified"}</p>
+              <p>Posted by: {detail.owner_name}</p>
 
-      <section className="panel">
-        <h2>Approved Career Posts</h2>
-        {posts.length === 0 && <p>No approved posts available.</p>}
+              <button
+                className="cancel-btn"
+                onClick={() => setDetail(null)}
+              >
+                Close Details
+              </button>
+            </section>
+          )}
 
-        {posts.map((post) => (
-          <article className="post-card" key={post.id}>
-            <span className="status approved">Approved</span>
-            <h3>{post.title}</h3>
-            <p>{post.description}</p>
-            <small>
-              {postTypeLabel(post.post_type)} · By {post.owner_name}
-            </small>
-            <button className="details-btn" onClick={() => void showDetails(post.id)}>
-              View Details
-            </button>
-          </article>
-        ))}
-      </section>
+          <footer>
+            IUBLink CareerHub · Mid Project Assessment MVP
+          </footer>
+        </main>
+      </div>
+    </div>
+  )
+}
 
-      {detail && (
-        <section className="panel detail-panel">
-          <h2>Post Details</h2>
-          <h3>{detail.title}</h3>
-          <p>{detail.description}</p>
-          <p>Company: {detail.company || "Not specified"}</p>
-          <p>Posted by: {detail.owner_name}</p>
-          <button className="cancel-btn" onClick={() => setDetail(null)}>
-            Close Details
-          </button>
-        </section>
-      )}
-
-      <footer>
-        IUBLink CareerHub · Mid Project Assessment MVP
-      </footer>
-    </main>
+export default function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<Home />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/dashboard" element={<CareerDashboard />} />
+    </Routes>
   )
 }
