@@ -38,7 +38,7 @@ oauth2_scheme = OAuth2PasswordBearer(
 # DATABASE CONFIGURATION
 # ==========================================
 
-DB_PATH = Path(__file__).resolve().parent / "iublink.db"
+DB_PATH = Path("/tmp/iublink.db")
 
 
 def get_connection():
