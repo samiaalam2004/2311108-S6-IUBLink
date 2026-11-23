@@ -1,12 +1,10 @@
-
-import { useNavigate } from "react-router-dom"
-
-type Role = "student" | "alumni" | "faculty" | "admin"
+﻿import { useNavigate } from "react-router-dom"
+import { apiFetch, setStoredToken } from "../api/client"
 
 interface User {
   full_name: string
   email: string
-  role: Role
+  role: string
 }
 
 interface NavbarProps {
@@ -16,18 +14,30 @@ interface NavbarProps {
 function Navbar({ user }: NavbarProps) {
   const navigate = useNavigate()
 
-  const roleLabels: Record<Role, string> = {
+  const roleLabels: Record<string, string> = {
+    user: "Member",
+    admin: "Admin",
     student: "Student",
     alumni: "Alumni",
     faculty: "Faculty",
-    admin: "Admin",
   }
 
-  function handleLogout() {
-    localStorage.removeItem("access_token")
-    localStorage.removeItem("user")
-    navigate("/login")
+  async function handleLogout() {
+    try {
+      await apiFetch("/api/auth/logout", {
+        method: "POST",
+      })
+    } catch {
+      // Ignore network errors on logout and clear local state anyway
+    } finally {
+      setStoredToken(null)
+      localStorage.removeItem("user")
+      navigate("/login")
+    }
   }
+
+  const displayName = user.full_name || "User"
+  const roleText = roleLabels[user.role] || user.role
 
   return (
     <header className="navbar">
@@ -45,25 +55,25 @@ function Navbar({ user }: NavbarProps) {
           aria-label="Notifications"
           title="Notifications"
         >
-          <span>♢</span>
+          <span>&#9826;</span>
           <i />
         </button>
 
         <div className="navbar-profile">
           <div className="profile-avatar">
-            {user.full_name.charAt(0).toUpperCase()}
+            {displayName.charAt(0).toUpperCase()}
           </div>
 
           <div className="profile-info">
-            <strong>{user.full_name}</strong>
-            <span>{roleLabels[user.role]}</span>
+            <strong>{displayName}</strong>
+            <span>{roleText}</span>
           </div>
         </div>
 
         <button
           type="button"
           className="logout-btn"
-          onClick={handleLogout}
+          onClick={() => void handleLogout()}
         >
           Logout
         </button>

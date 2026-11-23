@@ -1,5 +1,4 @@
-
-type Role = "student" | "alumni" | "faculty" | "admin"
+﻿type Role = "user" | "student" | "alumni" | "faculty" | "admin"
 
 interface Post {
   id: number
@@ -34,13 +33,13 @@ function DashboardStats({
           {
             label: "Pending Reviews",
             value: adminPosts.length,
-            icon: "◷",
+            icon: "·",
             color: "orange",
           },
           {
             label: "Total Visible Posts",
             value: posts.length + adminPosts.length,
-            icon: "▤",
+            icon: "¤",
             color: "teal",
           },
         ]
@@ -49,7 +48,7 @@ function DashboardStats({
             {
               label: "Total Opportunities",
               value: posts.length,
-              icon: "▣",
+              icon: "£",
               color: "purple",
             },
             {
@@ -75,19 +74,19 @@ function DashboardStats({
             {
               label: "Career Opportunities",
               value: posts.length,
-              icon: "▣",
+              icon: "£",
               color: "purple",
             },
             {
               label: "My Posts",
               value: myPosts.length,
-              icon: "▤",
+              icon: "¤",
               color: "teal",
             },
             {
               label: "Pending Posts",
               value: myPosts.filter((p) => p.status === "pending").length,
-              icon: "◷",
+              icon: "·",
               color: "orange",
             },
             {

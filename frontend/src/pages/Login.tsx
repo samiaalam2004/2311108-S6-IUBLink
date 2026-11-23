@@ -1,6 +1,6 @@
-
-import { useState } from "react"
+﻿import { useState, type FormEvent } from "react"
 import { Link, useNavigate } from "react-router-dom"
+import { apiData, apiFetch, setStoredToken } from "../api/client"
 
 interface LoginResponse {
   access_token: string
@@ -21,36 +21,24 @@ function Login() {
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
 
-  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+  async function handleLogin(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
 
     setError("")
     setLoading(true)
 
     try {
-        const response = await fetch("https://2311108-s6-iub-link.vercel.app/api/auth/login", {
+      const response = await apiFetch("/api/auth/login", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify({
-          email,
+          email: email.trim(),
           password,
         }),
       })
 
-      const data: LoginResponse | { detail: string } =
-        await response.json()
+      const loginData = await apiData<LoginResponse>(response)
 
-      if (!response.ok) {
-        throw new Error(
-          "detail" in data ? data.detail : "Login failed"
-        )
-      }
-
-      const loginData = data as LoginResponse
-
-      localStorage.setItem("access_token", loginData.access_token)
+      setStoredToken(loginData.access_token)
       localStorage.setItem("user", JSON.stringify(loginData.user))
 
       navigate("/dashboard")
@@ -99,11 +87,7 @@ function Login() {
             />
           </div>
 
-          {error && (
-            <p className="error-message">
-              {error}
-            </p>
-          )}
+          {error && <p className="error-message">{error}</p>}
 
           <button type="submit" disabled={loading}>
             {loading ? "Logging in..." : "Login"}

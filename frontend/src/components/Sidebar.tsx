@@ -1,10 +1,7 @@
-
-import { Link, useLocation } from "react-router-dom"
-
-type Role = "student" | "alumni" | "faculty" | "admin"
+﻿import { useLocation } from "react-router-dom"
 
 interface SidebarProps {
-  role: Role
+  role: string
 }
 
 interface MenuItem {
@@ -17,92 +14,40 @@ function Sidebar({ role }: SidebarProps) {
   const location = useLocation()
 
   const commonMenu: MenuItem[] = [
-    { label: "Dashboard", icon: "▦", href: "/dashboard" },
+    { label: "Dashboard", icon: "•", href: "/dashboard" },
+    { label: "Profile & Security", icon: "•", href: "/dashboard#profile" },
+    { label: "Career Opportunities", icon: "•", href: "/dashboard#opportunities" },
   ]
 
-  const roleMenus: Record<Role, MenuItem[]> = {
-    student: [
-      { label: "Career Opportunities", icon: "💼", href: "/dashboard#opportunities" },
-      { label: "My Posts", icon: "📝", href: "/dashboard#my-posts" },
-      { label: "Alumni Directory", icon: "👥", href: "/dashboard#alumni" },
-      { label: "Mentorship", icon: "🎓", href: "/dashboard#mentorship" },
-      { label: "Events", icon: "📅", href: "/dashboard#events" },
-    ],
-    alumni: [
-      { label: "Career Opportunities", icon: "💼", href: "/dashboard#opportunities" },
-      { label: "My Posts", icon: "📝", href: "/dashboard#my-posts" },
-      { label: "Students", icon: "👥", href: "/dashboard#students" },
-      { label: "Mentorship", icon: "🎓", href: "/dashboard#mentorship" },
-      { label: "Events", icon: "📅", href: "/dashboard#events" },
-    ],
-    faculty: [
-      { label: "Career Opportunities", icon: "💼", href: "/dashboard#opportunities" },
-      { label: "Students", icon: "👥", href: "/dashboard#students" },
-      { label: "Alumni Directory", icon: "🎓", href: "/dashboard#alumni" },
-      { label: "Events", icon: "📅", href: "/dashboard#events" },
-    ],
-    admin: [
-      { label: "User Management", icon: "👥", href: "/dashboard#users" },
-      { label: "Post Review", icon: "📋", href: "/dashboard#review" },
-      { label: "Events Management", icon: "📅", href: "/dashboard#events" },
-      { label: "Reports", icon: "📊", href: "/dashboard#reports" },
-    ],
-  }
+  const adminMenu: MenuItem[] = [
+    { label: "Post Moderation", icon: "•", href: "/dashboard#review" },
+    { label: "User Moderation", icon: "•", href: "/dashboard#users" },
+  ]
 
-  function isActive(href: string) {
-    const [path, hash] = href.split("#")
+  const userMenu: MenuItem[] = [
+    { label: "My Posts", icon: "•", href: "/dashboard#my-posts" },
+  ]
 
-    return (
-      location.pathname === path &&
-      (hash ? location.hash === `#${hash}` : !location.hash)
-    )
-  }
+  const items = [
+    ...commonMenu,
+    ...(role === "admin" ? adminMenu : userMenu),
+  ]
 
   return (
-    <aside className="sidebar">
+    <aside className="sidebar" data-path={location.pathname}>
       <div className="sidebar-brand">
-        <div className="brand-logo">I</div>
-        <div>
-          <h2>IUBLink</h2>
-          <span>CareerHub</span>
-        </div>
+        <strong>IUBLink</strong>
+        <span>CareerHub</span>
       </div>
 
-      <div className="sidebar-menu">
-        <p className="sidebar-label">MAIN MENU</p>
-
-        {commonMenu.map((item) => (
-          <Link
-            key={item.label}
-            to={item.href}
-            className={`nav-link ${isActive(item.href) ? "active" : ""}`}
-          >
-            <span className="nav-icon">{item.icon}</span>
+      <nav className="sidebar-nav">
+        {items.map((item) => (
+          <a key={item.href} href={item.href} className="sidebar-link">
+            <span>{item.icon}</span>
             <span>{item.label}</span>
-          </Link>
+          </a>
         ))}
-
-        <p className="sidebar-label">WORKSPACE</p>
-
-        {roleMenus[role].map((item) => (
-          <Link
-            key={item.label}
-            to={item.href}
-            className={`nav-link ${isActive(item.href) ? "active" : ""}`}
-          >
-            <span className="nav-icon">{item.icon}</span>
-            <span>{item.label}</span>
-          </Link>
-        ))}
-      </div>
-
-      <div className="sidebar-footer">
-        <div className="sidebar-help-icon">?</div>
-        <div>
-          <strong>Need Help?</strong>
-          <p>Contact IUBLink Support</p>
-        </div>
-      </div>
+      </nav>
     </aside>
   )
 }
