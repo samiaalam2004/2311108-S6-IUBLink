@@ -1,4 +1,4 @@
-﻿import { useNavigate } from "react-router-dom"
+import { useNavigate } from "react-router-dom"
 import { apiFetch, setStoredToken } from "../api/client"
 
 interface User {

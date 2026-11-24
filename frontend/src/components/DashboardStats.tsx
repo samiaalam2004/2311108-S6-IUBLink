@@ -1,4 +1,4 @@
-﻿type Role = "user" | "student" | "alumni" | "faculty" | "admin"
+type Role = "user" | "student" | "alumni" | "faculty" | "admin"
 
 interface Post {
   id: number

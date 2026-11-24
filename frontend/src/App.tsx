@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useState, type FormEvent } from "react"
+import { useCallback, useEffect, useState, type FormEvent } from "react"
 import { Routes, Route, Link, useNavigate } from "react-router-dom"
 
 import Home from "./pages/Home"
