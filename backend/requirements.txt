@@ -2,4 +2,3 @@ fastapi[standard]>=0.141.1
 pwdlib[argon2]
 PyJWT
 psycopg[binary]>=3.2.0
-python-dotenv
