@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom"
-import { apiFetch, setStoredToken } from "../api/client"
+import { apiFetch, setStoredToken } from "../services/api"
 
 interface User {
   full_name: string
