@@ -1,106 +1,84 @@
-
 from datetime import datetime
 
 from database.connection import get_connection
 
 
-def create_session(
-    user_id: int,
-    token_hash: str,
-    expires_at: datetime,
-) -> None:
+def create(user_id: int, token_hash: str, ip: str, ua: str, expires_at: datetime) -> int:
     with get_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
-                """
-                INSERT INTO public.refresh_tokens
-                    (user_id, token_hash, expires_at)
-                VALUES (%s, %s, %s)
-                """,
-                (user_id, token_hash, expires_at),
+                """INSERT INTO sessions (user_id, token_hash, ip, user_agent, expires_at)
+                   VALUES (%s, %s, %s, %s, %s) RETURNING id""",
+                (user_id, token_hash, ip, ua, expires_at),
             )
+            sid = cur.fetchone()["id"]
+        conn.commit()
+    return sid
 
 
-def get_session_by_token_hash(token_hash: str) -> dict | None:
+def get_by_hash(token_hash: str) -> dict | None:
     with get_connection() as conn:
         with conn.cursor() as cur:
-            cur.execute(
-                """
-                SELECT
-                    rt.id,
-                    rt.user_id,
-                    rt.expires_at,
-                    rt.revoked_at,
-                    u.role,
-                    u.is_banned
-                FROM public.refresh_tokens AS rt
-                JOIN public.users AS u ON u.id = rt.user_id
-                WHERE rt.token_hash = %s
-                """,
-                (token_hash,),
-            )
+            cur.execute("SELECT * FROM sessions WHERE token_hash = %s", (token_hash,))
             return cur.fetchone()
 
 
-def rotate_session(
-    old_session_id: int,
-    user_id: int,
-    new_token_hash: str,
-    expires_at: datetime,
-) -> bool:
+def rotate(session_id: int, new_hash: str, expires_at: datetime, ip: str, ua: str) -> None:
     with get_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
-                """
-                UPDATE public.refresh_tokens
-                SET revoked_at = NOW()
-                WHERE id = %s
-                  AND user_id = %s
-                  AND revoked_at IS NULL
-                  AND expires_at > NOW()
-                RETURNING id
-                """,
-                (old_session_id, user_id),
+                """UPDATE sessions
+                   SET token_hash = %s, expires_at = %s, ip = %s, user_agent = %s,
+                       last_used_at = NOW()
+                   WHERE id = %s""",
+                (new_hash, expires_at, ip, ua, session_id),
             )
-
-            if cur.fetchone() is None:
-                return False
-
-            cur.execute(
-                """
-                INSERT INTO public.refresh_tokens
-                    (user_id, token_hash, expires_at)
-                VALUES (%s, %s, %s)
-                """,
-                (user_id, new_token_hash, expires_at),
-            )
-
-    return True
+        conn.commit()
 
 
-def revoke_session_by_hash(token_hash: str) -> None:
+def revoke_by_hash(token_hash: str) -> None:
     with get_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
-                """
-                UPDATE public.refresh_tokens
-                SET revoked_at = NOW()
-                WHERE token_hash = %s
-                  AND revoked_at IS NULL
-                """,
+                "UPDATE sessions SET revoked_at = NOW() "
+                "WHERE token_hash = %s AND revoked_at IS NULL",
                 (token_hash,),
             )
+        conn.commit()
 
 
-def revoke_all_sessions(user_id: int) -> None:
+def revoke_one(session_id: int, user_id: int) -> bool:
     with get_connection() as conn:
         with conn.cursor() as cur:
             cur.execute(
-                """
-                UPDATE public.refresh_tokens
-                SET revoked_at = NOW()
-                WHERE user_id = %s
-                  AND revoked_at IS NULL
-                """,
+                "UPDATE sessions SET revoked_at = NOW() "
+                "WHERE id = %s AND user_id = %s AND revoked_at IS NULL",
+                (session_id, user_id),
+            )
+            ok = cur.rowcount > 0
+        conn.commit()
+    return ok
+
+
+def revoke_all_for_user(user_id: int) -> None:
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE sessions SET revoked_at = NOW() "
+                "WHERE user_id = %s AND revoked_at IS NULL",
                 (user_id,),
             )
+        conn.commit()
+
+
+def list_active(user_id: int) -> list[dict]:
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """SELECT id, token_hash, ip, user_agent, created_at, last_used_at, expires_at
+                   FROM sessions
+                   WHERE user_id = %s AND revoked_at IS NULL AND expires_at > NOW()
+                   ORDER BY last_used_at DESC""",
+                (user_id,),
+            )
+            return cur.fetchall()
