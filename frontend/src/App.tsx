@@ -13,7 +13,7 @@ import {
   getStoredToken,
   refreshAccessToken,
   setStoredToken,
-} from "./api/client"
+} from "./services/api"
 import "./App.css"
 
 type PostType = "job_seeking" | "job" | "internship"

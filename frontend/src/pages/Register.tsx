@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { apiData, apiFetch } from "../api/client"
+import { apiData, apiFetch } from "../services/api"
 
 function Register() {
   const navigate = useNavigate()

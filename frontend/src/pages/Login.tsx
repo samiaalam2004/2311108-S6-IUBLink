@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { apiData, apiFetch, setStoredToken } from "../api/client"
+import { apiData, apiFetch, setStoredToken } from "../services/api"
 
 interface LoginResponse {
   access_token: string
