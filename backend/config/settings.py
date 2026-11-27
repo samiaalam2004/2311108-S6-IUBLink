@@ -36,3 +36,11 @@ for name, value in (
         raise RuntimeError(
             f"{name} environment variable is not set"
         )
+
+REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
+MAX_FAILED_ATTEMPTS = int(os.getenv("MAX_FAILED_ATTEMPTS", "5"))
+LOCKOUT_MINUTES = int(os.getenv("LOCKOUT_MINUTES", "15"))
+
+REFRESH_COOKIE_NAME = "refresh_token"
+COOKIE_SECURE = os.getenv("COOKIE_SECURE", "false").lower() == "true"
+COOKIE_SAMESITE = os.getenv("COOKIE_SAMESITE", "lax").lower()  # lax | none | strict

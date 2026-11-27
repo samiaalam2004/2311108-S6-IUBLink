@@ -3,6 +3,9 @@ from datetime import datetime, timedelta, timezone
 import hashlib
 import hmac
 import secrets
+import hashlib
+import secrets
+
 
 import jwt
 from fastapi import Response
@@ -103,3 +106,11 @@ def clear_refresh_cookie(response: Response) -> None:
         samesite=COOKIE_SAMESITE,
         path="/api/auth",
     )
+
+
+def generate_refresh_token() -> str:
+    return secrets.token_urlsafe(48)
+
+
+def hash_token(token: str) -> str:
+    return hashlib.sha256(f"{token}{PEPPER}".encode()).hexdigest()
