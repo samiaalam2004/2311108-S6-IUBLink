@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from config.settings import FRONTEND_URL
 from database.connection import init_db
-from routes import auth, posts, admin, users, temp_admin_reset
+from routes import auth, posts, admin, users
 
 init_db()
 
@@ -33,4 +33,3 @@ app.include_router(auth.router)
 app.include_router(posts.router)
 app.include_router(admin.router)
 app.include_router(users.router)
-app.include_router(temp_admin_reset.router)
